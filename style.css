@@ -708,4 +708,17 @@ img.slot-icon{
     height: 28px;
   }
 }
+
+
+/* FASE 4 — Aumentar somente o sanitário */
+
+#phase4-cards .cycle-card[data-id="sanitation"] .card-icon {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    transform: scale(2.3);
+    transform-origin: center;
+    image-rendering: pixelated;
+}
+
   
