@@ -607,7 +607,7 @@ const BODY_OPTION_LABELS = {
 const Phase3 = {
   score: 100,
   errors: 0,
-  timeLeft: 60,
+  timeLeft: 120,
   timerId: null,
   timeUpShown: false,
   solved: false,
@@ -621,7 +621,7 @@ const Phase3 = {
   init() {
     this.score = 100;
     this.errors = 0;
-    this.timeLeft = 60;
+    this.timeLeft = 120;
     this.timeUpShown = false;
     this.solved = false;
     this.currentQuestion = 0;
