@@ -71,6 +71,7 @@ button{
 .intro-card{
   background:var(--card-bg);
   border-radius:24px;
+  border:6px solid #0c2939;
   max-width:560px;
   width:100%;
   padding:40px 32px;
