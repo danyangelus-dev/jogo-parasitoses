@@ -751,7 +751,7 @@ const BODY_QUIZ = [
   {
     id: 'intestine',
     label: 'Intestino',
-    prompt: 'O ovo é engolido e eclode dentro do corpo. Onde a larva nasce primeiro?',
+    prompt: 'Onde a larva nasce primeiro?',
     options: ['intestine', 'stomach', 'throat'],
   },
   {
@@ -769,7 +769,7 @@ const BODY_QUIZ = [
   {
     id: 'throat',
     label: 'Garganta',
-    prompt: 'Da região respiratória, a larva sobe pelas vias aéreas até ser engolida de novo. Por onde ela passa antes de descer outra vez ao intestino?',
+    prompt: 'Depois do pulmão, por onde ela passa antes de descer outra vez ao intestino?',
     options: ['throat', 'stomach', 'brain'],
   },
 ];
