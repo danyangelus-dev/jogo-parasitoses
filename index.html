@@ -65,7 +65,7 @@
     <!-- preenchido dinamicamente pelo script.js -->
   </div>
 
-  <p class="phase-hint">CLIQUE nas etapas na ordem correta!</p>
+  <p class="phase-hint">CLIQUE nas etapas na ordem correta</p>
 
   <div id="phase2-cards" class="cards-grid">
     <!-- cartas embaralhadas, preenchidas dinamicamente pelo script.js -->
@@ -75,7 +75,7 @@
 <!-- ===================== TELA: FASE 3 - CAMINHO NO CORPO (QUIZ) ===================== -->
 <section id="screen-phase3" class="screen">
   <div class="mission-banner">
-    <p><img class="mission-icon" src="sprites/icon_dna.png" alt="">Depois de ingerido, o ovo eclode e a larva percorre um caminho dentro do corpo. Responda corretamente.</p>
+    <p><img class="mission-icon" src="sprites/icon_dna.png" alt="">Depois de ingerido, o ovo eclode e a larva percorre um caminho dentro do corpo. Responda cada etapa corretamente.</p>
   </div>
 
   <div id="sequence-track3" class="sequence-track">
@@ -133,16 +133,14 @@
 
 <!-- ===================== MODAL: JOGO CONCLUÍDO ===================== -->
 <div id="modal-game-complete" class="modal-overlay hidden">
-  <div class="modal-box complete-box">
-    <div class="modal-icon"><img src="sprites/icon_party.png" alt=""></div>
-    <h2>MISSÃO CUMPRIDA!</h2>
-    <p class="modal-explanation">
-      Você investigou o parque, remontou o ciclo de transmissão e seguiu o caminho do parasita
-      dentro do corpo!
-    </p>
-    <div class="stats-row">
-      <div class="stat-pill">Pontuação total: <span id="game-total-score">0</span> / 300</div>
+  <div id="game-complete-box" class="modal-box complete-box">
+    <div class="modal-icon"><img id="game-result-icon" src="sprites/icon_party.png" alt=""></div>
+    <h2 id="game-result-title">MISSÃO CUMPRIDA!</h2>
+    <div class="final-score-box">
+      <span class="final-score-label">Sua pontuação</span>
+      <span class="final-score-value"><span id="game-total-score">0</span><small> / 300</small></span>
     </div>
+    <p id="game-result-text" class="modal-explanation"></p>
     <button id="btn-restart-game" class="btn btn-primary">JOGAR NOVAMENTE</button>
   </div>
 </div>

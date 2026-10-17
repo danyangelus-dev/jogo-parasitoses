@@ -29,6 +29,9 @@ const LAST_PHASE = 3;
 // para a fase seguinte (para o jogador não ficar preso).
 const MAX_ERRORS = 10;
 
+// Pontuação total mínima para passar no teste (e ganhar o prêmio).
+const PASS_SCORE = 210;
+
 // Pontos descontados a cada erro.
 const ERROR_PENALTY = 30;
 
@@ -54,17 +57,41 @@ const phaseNumberEl = document.getElementById('phase-number');
 
 const toastEl = document.getElementById('feedback-toast');
 
+const modalPhaseComplete = document.getElementById('modal-phase-complete');
 const modalSoon = document.getElementById('modal-soon');
 const modalTimeUp = document.getElementById('modal-timeup');
 const modalGameComplete = document.getElementById('modal-game-complete');
 const modalMaxErrors = document.getElementById('modal-max-errors');
 
 // campos dinâmicos dos modais (reaproveitados por todas as fases)
+const phaseCompleteTitleEl = document.getElementById('phase-complete-title');
+const phaseFinalScoreEl = document.getElementById('phase-final-score');
+const phaseFinalErrorsEl = document.getElementById('phase-final-errors');
 const gameTotalScoreEl = document.getElementById('game-total-score');
+const gameCompleteBoxEl = document.getElementById('game-complete-box');
+const gameResultIconEl = document.getElementById('game-result-icon');
+const gameResultTitleEl = document.getElementById('game-result-title');
+const gameResultTextEl = document.getElementById('game-result-text');
 
 /* ============================== */
 /*  UTILITÁRIOS DE TELA           */
 /* ============================== */
+// Mostra no HUD a pontuação TOTAL (fases já concluídas + fase atual).
+// A pontuação individual da fase aparece só no menu "FASE X CONCLUÍDA!".
+function updateScoreHud(phase) {
+  scoreEl.textContent = GAME.totalScore + phase.score;
+}
+
+// Pontos máximos que cada fase pode render.
+const PHASE_MAX_POINTS = 100;
+
+// Recalcula a pontuação da fase (ganhos - penalidades, nunca abaixo de 0)
+// e atualiza o HUD. O jogo começa em 0 e sobe conforme os acertos.
+function recalcScore(phase) {
+  phase.score = Math.max(0, phase.earned - phase.penalty);
+  updateScoreHud(phase);
+}
+
 function showScreen(name) {
   Object.values(screens).forEach(s => s.classList.remove('active'));
   screens[name].classList.add('active');
@@ -90,18 +117,113 @@ function showToast(message) {
 }
 
 /* ============================== */
+/*  EFEITO DE CONFETE             */
+/* ============================== */
+function launchConfetti(duration = 4000) {
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:200;';
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+
+  const resize = () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  };
+  resize();
+  window.addEventListener('resize', resize);
+
+  const colors = ['#1fbae5', '#3ecf6a', '#ffb648', '#ff5c5c', '#4aa8ff', '#f7d44c', '#c77dff'];
+  const pieces = [];
+  const makePiece = (fromTop) => ({
+    x: Math.random() * canvas.width,
+    y: fromTop ? -20 - Math.random() * canvas.height * 0.5 : Math.random() * -canvas.height,
+    w: 6 + Math.random() * 8,
+    h: 8 + Math.random() * 10,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    vy: 2.5 + Math.random() * 4,
+    vx: -1.5 + Math.random() * 3,
+    rot: Math.random() * Math.PI * 2,
+    vr: -0.2 + Math.random() * 0.4,
+    sway: Math.random() * Math.PI * 2,
+  });
+  for (let i = 0; i < 180; i++) pieces.push(makePiece(false));
+
+  const start = performance.now();
+  function frame(now) {
+    const elapsed = now - start;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    pieces.forEach(p => {
+      p.sway += 0.05;
+      p.x += p.vx + Math.sin(p.sway) * 1.2;
+      p.y += p.vy;
+      p.rot += p.vr;
+
+      // durante o tempo do efeito, as peças que saem da tela voltam ao topo
+      if (p.y > canvas.height + 20 && elapsed < duration) {
+        Object.assign(p, makePiece(true));
+      }
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+
+    const anyVisible = pieces.some(p => p.y <= canvas.height + 20);
+    if (elapsed < duration || anyVisible) {
+      requestAnimationFrame(frame);
+    } else {
+      window.removeEventListener('resize', resize);
+      canvas.remove();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ============================== */
 /*  MODAIS GENÉRICOS POR FASE     */
 /*  (usam os campos textuais que  */
 /*  cada objeto de fase fornece)  */
 /* ============================== */
-// Ao acertar, a fase termina e o jogo segue direto para a próxima
-// (sem modais de acerto, explicação ou conclusão).
+// Ao acertar, mostra apenas o menu de "FASE X CONCLUÍDA!"
+// (sem os menus de acerto e de explicação).
 function showCorrectModal(phase) {
-  completePhaseAndAdvance(phase);
+  showPhaseCompleteModal(phase);
+}
+
+function showPhaseCompleteModal(phase) {
+  phaseCompleteTitleEl.textContent = `FASE ${GAME.currentPhase} CONCLUÍDA!`;
+  phaseFinalScoreEl.textContent = phase.score;
+  phaseFinalErrorsEl.textContent = phase.errors;
+
+  const nextBtn = document.getElementById('btn-next-phase');
+  nextBtn.innerHTML = (GAME.currentPhase >= LAST_PHASE)
+    ? 'VER RESULTADO FINAL <img class="btn-icon" src="sprites/icon_trophy.png" alt="">'
+    : 'PRÓXIMA FASE <img class="btn-icon" src="sprites/icon_arrow.png" alt="">';
+
+  openModal(modalPhaseComplete);
 }
 
 function showGameCompleteModal() {
   gameTotalScoreEl.textContent = GAME.totalScore;
+
+  const passed = GAME.totalScore >= PASS_SCORE;
+  gameCompleteBoxEl.classList.toggle('result-pass', passed);
+  gameCompleteBoxEl.classList.toggle('result-fail', !passed);
+
+  if (passed) {
+    gameResultIconEl.src = 'sprites/icon_party.png';
+    gameResultTitleEl.textContent = 'PARABÉNS! VOCÊ GANHOU UM PRÊMIO!';
+    gameResultTextEl.textContent = 'Você passou no teste e ajudou a interromper o ciclo da Ascaridíase. Retire o seu prêmio!';
+  } else {
+    gameResultIconEl.src = 'sprites/icon_reload.png';
+    gameResultTitleEl.textContent = 'VOCÊ NÃO PASSOU NO TESTE';
+    gameResultTextEl.textContent = `Você precisa de pelo menos ${PASS_SCORE} pontos para passar. Tente novamente!`;
+  }
+
   openModal(modalGameComplete);
 }
 
@@ -192,13 +314,15 @@ const Phase1 = {
   educationExplanation: 'A infecção acontece quando uma pessoa ingere ovos do parasita presentes em água, alimentos ou mãos contaminadas.',
 
   init() {
-    this.score = 100;
+    this.earned = 0;   // pontos ganhos nesta fase
+    this.penalty = 0;  // pontos perdidos por erros
+    this.score = 0;
     this.errors = 0;
     this.timeLeft = 60;
     this.timeUpShown = false;
     this.solved = false;
 
-    scoreEl.textContent = this.score;
+    updateScoreHud(this);
     errorsEl.textContent = this.errors;
     timerEl.textContent = this.timeLeft + 's';
 
@@ -234,9 +358,10 @@ const Phase1 = {
   registerWrongClick(el) {
     if (this.solved) return;
     this.errors++;
-    this.score = Math.max(0, this.score - ERROR_PENALTY);
+    this.penalty += ERROR_PENALTY;
+    recalcScore(this);
     errorsEl.textContent = this.errors;
-    scoreEl.textContent = this.score;
+    updateScoreHud(this);
 
     if (this.errors >= MAX_ERRORS) {
       handleMaxErrorsReached(this);
@@ -256,6 +381,8 @@ const Phase1 = {
     clearInterval(this.timerId);
 
     el.classList.add('clicked-correct');
+    this.earned = PHASE_MAX_POINTS;
+    recalcScore(this);
 
     setTimeout(() => showCorrectModal(this), 400);
   },
@@ -387,14 +514,16 @@ const Phase2 = {
   educationExplanation: 'Cada etapa depende da anterior: sem saneamento básico e sem higiene, os ovos passam do ambiente para as mãos e os alimentos, reiniciando o ciclo em outra pessoa.',
 
   init() {
-    this.score = 100;
+    this.earned = 0;   // pontos ganhos nesta fase
+    this.penalty = 0;  // pontos perdidos por erros
+    this.score = 0;
     this.errors = 0;
     this.timeLeft = 60;
     this.timeUpShown = false;
     this.solved = false;
     this.nextExpected = 0;
 
-    scoreEl.textContent = this.score;
+    updateScoreHud(this);
     errorsEl.textContent = this.errors;
     timerEl.textContent = this.timeLeft + 's';
 
@@ -480,6 +609,8 @@ const Phase2 = {
     cardEl.classList.add('placed');
 
     this.nextExpected++;
+    this.earned += PHASE_MAX_POINTS / this.sequence.length;
+    recalcScore(this);
 
     if (this.nextExpected === this.sequence.length) {
       this.solved = true;
@@ -491,9 +622,10 @@ const Phase2 = {
   registerWrongClick(cardEl) {
     if (this.solved) return;
     this.errors++;
-    this.score = Math.max(0, this.score - ERROR_PENALTY);
+    this.penalty += ERROR_PENALTY;
+    recalcScore(this);
     errorsEl.textContent = this.errors;
-    scoreEl.textContent = this.score;
+    updateScoreHud(this);
 
     if (this.errors >= MAX_ERRORS) {
       handleMaxErrorsReached(this);
@@ -540,7 +672,7 @@ const BODY_QUIZ = [
   {
     id: 'intestine',
     label: 'Intestino',
-    prompt: 'Onde a larva nasce primeiro?',
+    prompt: 'O ovo é engolido e eclode dentro do corpo. Onde a larva nasce primeiro?',
     options: ['intestine', 'stomach', 'throat'],
   },
   {
@@ -552,13 +684,13 @@ const BODY_QUIZ = [
   {
     id: 'lungs',
     label: 'Pulmões',
-    prompt: 'Levada pelo sangue, a larva chega a um órgão. Qual é esse órgão?',
+    prompt: 'Levada pelo sangue, a larva chega a um órgão do sistema respiratório. Qual é esse órgão?',
     options: ['lungs', 'liver', 'kidney'],
   },
   {
     id: 'throat',
     label: 'Garganta',
-    prompt: 'Depois do pulmão, Por onde ela passa antes de descer outra vez?',
+    prompt: 'Da região respiratória, a larva sobe pelas vias aéreas até ser engolida de novo. Por onde ela passa antes de descer outra vez ao intestino?',
     options: ['throat', 'stomach', 'brain'],
   },
 ];
@@ -589,14 +721,16 @@ const Phase3 = {
   educationExplanation: 'Por isso a Ascaridíase pode causar tosse e desconforto respiratório antes mesmo de dar sintomas intestinais: a larva passa pelos pulmões antes de se fixar no intestino como verme adulto.',
 
   init() {
-    this.score = 100;
+    this.earned = 0;   // pontos ganhos nesta fase
+    this.penalty = 0;  // pontos perdidos por erros
+    this.score = 0;
     this.errors = 0;
     this.timeLeft = 120;
     this.timeUpShown = false;
     this.solved = false;
     this.currentQuestion = 0;
 
-    scoreEl.textContent = this.score;
+    updateScoreHud(this);
     errorsEl.textContent = this.errors;
     timerEl.textContent = this.timeLeft + 's';
 
@@ -687,6 +821,8 @@ const Phase3 = {
     setTimeout(() => slot.classList.remove('just-filled'), 500);
 
     this.currentQuestion++;
+    this.earned += PHASE_MAX_POINTS / BODY_QUIZ.length;
+    recalcScore(this);
 
     if (this.currentQuestion === BODY_QUIZ.length) {
       this.solved = true;
@@ -700,9 +836,10 @@ const Phase3 = {
   registerWrongAnswer(btnEl) {
     if (this.solved) return;
     this.errors++;
-    this.score = Math.max(0, this.score - ERROR_PENALTY);
+    this.penalty += ERROR_PENALTY;
+    recalcScore(this);
     errorsEl.textContent = this.errors;
-    scoreEl.textContent = this.score;
+    updateScoreHud(this);
 
     if (this.errors >= MAX_ERRORS) {
       handleMaxErrorsReached(this);
@@ -726,6 +863,13 @@ PhaseManager.registerPhase(3, Phase3);
    ================================================================= */
 document.getElementById('btn-start').addEventListener('click', () => {
   PhaseManager.start(1);
+});
+
+document.getElementById('btn-next-phase').addEventListener('click', () => {
+  closeModal(modalPhaseComplete);
+  // confete ao clicar em "VER RESULTADO FINAL" (última fase)
+  if (GAME.currentPhase >= LAST_PHASE) launchConfetti();
+  completePhaseAndAdvance(PhaseManager.current);
 });
 
 document.getElementById('btn-continue-after-errors').addEventListener('click', () => {

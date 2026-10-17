@@ -700,3 +700,37 @@ img.slot-icon{
   width:32px;
   height:32px;
 }
+
+/* Tela final — pontuação em destaque e resultado (passou / não passou) */
+.modal-box.result-pass{ border-top:8px solid var(--success); }
+.modal-box.result-fail{ border-top:8px solid var(--danger); }
+
+.final-score-box{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  margin:6px 0 18px;
+  padding:14px 10px;
+  border-radius:18px;
+  background:#f1f4f8;
+}
+.final-score-label{
+  font-size:.9rem;
+  font-weight:700;
+  color:#556070;
+  text-transform:uppercase;
+  letter-spacing:1px;
+}
+.final-score-value{
+  font-size:3.6rem;
+  font-weight:800;
+  line-height:1.1;
+}
+.final-score-value small{
+  font-size:1.3rem;
+  font-weight:700;
+  color:#8a94a3;
+}
+.result-pass .final-score-value{ color:var(--success); }
+.result-fail .final-score-value{ color:var(--danger); }
