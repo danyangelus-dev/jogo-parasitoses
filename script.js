@@ -4,12 +4,11 @@
    Fase 1: O Parque Contaminado
    Fase 2: Monte o Ciclo
    Fase 3: O Caminho do Parasita no Corpo (quiz sequencial)
-   Fase 4: Missão Prevenção (encontre os hábitos corretos)
 
    ESTRUTURA GERAL (pensada para facilitar novas fases):
    - GAME:          estado global do jogo (fase atual, pontos totais, etc.)
    - PhaseManager:  controla transição entre fases
-   - Phase1..4:      lógica específica de cada fase, já implementadas
+   - Phase1..3:      lógica específica de cada fase, já implementadas
    - Cada fase expõe: score, errors, correctLeadText, correctExplanation,
      educationTitle, educationExplanation — usados pelos modais genéricos.
    ================================================================= */
@@ -24,15 +23,18 @@ const GAME = {
 };
 
 // Última fase do jogo (usada para saber quando mostrar a tela final).
-const LAST_PHASE = 4;
+const LAST_PHASE = 3;
 
 // Número de erros que, ao ser atingido numa fase, avança automaticamente
 // para a fase seguinte (para o jogador não ficar preso).
 const MAX_ERRORS = 10;
 
+// Pontos descontados a cada erro.
+const ERROR_PENALTY = 30;
+
 // Fases que já possuem implementação jogável.
 // Ao terminar de implementar uma nova fase, adicione o número aqui.
-const IMPLEMENTED_PHASES = [1, 2, 3, 4];
+const IMPLEMENTED_PHASES = [1, 2, 3];
 
 /* ============================== */
 /*  ELEMENTOS DE TELA (DOM)       */
@@ -42,7 +44,6 @@ const screens = {
   phase1: document.getElementById('screen-phase1'),
   phase2: document.getElementById('screen-phase2'),
   phase3: document.getElementById('screen-phase3'),
-  phase4: document.getElementById('screen-phase4'),
 };
 
 const hud = document.getElementById('hud');
@@ -53,23 +54,12 @@ const phaseNumberEl = document.getElementById('phase-number');
 
 const toastEl = document.getElementById('feedback-toast');
 
-const modalCorrect = document.getElementById('modal-correct');
-const modalEducation = document.getElementById('modal-education');
-const modalPhaseComplete = document.getElementById('modal-phase-complete');
 const modalSoon = document.getElementById('modal-soon');
 const modalTimeUp = document.getElementById('modal-timeup');
 const modalGameComplete = document.getElementById('modal-game-complete');
 const modalMaxErrors = document.getElementById('modal-max-errors');
 
 // campos dinâmicos dos modais (reaproveitados por todas as fases)
-const correctLeadEl = document.getElementById('correct-lead');
-const finalScoreEl = document.getElementById('final-score');
-const modalCorrectExplanationEl = document.getElementById('modal-correct-explanation');
-const modalEducationTitleEl = document.getElementById('modal-education-title');
-const modalEducationExplanationEl = document.getElementById('modal-education-explanation');
-const phaseCompleteTitleEl = document.getElementById('phase-complete-title');
-const phaseFinalScoreEl = document.getElementById('phase-final-score');
-const phaseFinalErrorsEl = document.getElementById('phase-final-errors');
 const gameTotalScoreEl = document.getElementById('game-total-score');
 
 /* ============================== */
@@ -104,30 +94,10 @@ function showToast(message) {
 /*  (usam os campos textuais que  */
 /*  cada objeto de fase fornece)  */
 /* ============================== */
+// Ao acertar, a fase termina e o jogo segue direto para a próxima
+// (sem modais de acerto, explicação ou conclusão).
 function showCorrectModal(phase) {
-  correctLeadEl.textContent = phase.correctLeadText;
-  finalScoreEl.textContent = phase.score;
-  modalCorrectExplanationEl.textContent = phase.correctExplanation;
-  openModal(modalCorrect);
-}
-
-function showEducationModal(phase) {
-  modalEducationTitleEl.textContent = phase.educationTitle;
-  modalEducationExplanationEl.textContent = phase.educationExplanation;
-  openModal(modalEducation);
-}
-
-function showPhaseCompleteModal(phase) {
-  phaseCompleteTitleEl.textContent = `FASE ${GAME.currentPhase} CONCLUÍDA!`;
-  phaseFinalScoreEl.textContent = phase.score;
-  phaseFinalErrorsEl.textContent = phase.errors;
-
-  const nextBtn = document.getElementById('btn-next-phase');
-  nextBtn.innerHTML = (GAME.currentPhase >= LAST_PHASE)
-    ? 'VER RESULTADO FINAL <img class="btn-icon" src="sprites/icon_trophy.png" alt="">'
-    : 'PRÓXIMA FASE <img class="btn-icon" src="sprites/icon_arrow.png" alt="">';
-
-  openModal(modalPhaseComplete);
+  completePhaseAndAdvance(phase);
 }
 
 function showGameCompleteModal() {
@@ -264,7 +234,7 @@ const Phase1 = {
   registerWrongClick(el) {
     if (this.solved) return;
     this.errors++;
-    this.score = Math.max(0, this.score - 10);
+    this.score = Math.max(0, this.score - ERROR_PENALTY);
     errorsEl.textContent = this.errors;
     scoreEl.textContent = this.score;
 
@@ -521,7 +491,7 @@ const Phase2 = {
   registerWrongClick(cardEl) {
     if (this.solved) return;
     this.errors++;
-    this.score = Math.max(0, this.score - 10);
+    this.score = Math.max(0, this.score - ERROR_PENALTY);
     errorsEl.textContent = this.errors;
     scoreEl.textContent = this.score;
 
@@ -570,7 +540,7 @@ const BODY_QUIZ = [
   {
     id: 'intestine',
     label: 'Intestino',
-    prompt: 'O ovo é engolido e eclode dentro do corpo. Onde a larva nasce primeiro?',
+    prompt: 'Onde a larva nasce primeiro?',
     options: ['intestine', 'stomach', 'throat'],
   },
   {
@@ -582,13 +552,13 @@ const BODY_QUIZ = [
   {
     id: 'lungs',
     label: 'Pulmões',
-    prompt: 'Levada pelo sangue, a larva chega a um órgão do sistema respiratório. Qual é esse órgão?',
+    prompt: 'Levada pelo sangue, a larva chega a um órgão. Qual é esse órgão?',
     options: ['lungs', 'liver', 'kidney'],
   },
   {
     id: 'throat',
     label: 'Garganta',
-    prompt: 'Da região respiratória, a larva sobe pelas vias aéreas até ser engolida de novo. Por onde ela passa antes de descer outra vez ao intestino?',
+    prompt: 'Depois do pulmão, Por onde ela passa antes de descer outra vez?',
     options: ['throat', 'stomach', 'brain'],
   },
 ];
@@ -730,7 +700,7 @@ const Phase3 = {
   registerWrongAnswer(btnEl) {
     if (this.solved) return;
     this.errors++;
-    this.score = Math.max(0, this.score - 10);
+    this.score = Math.max(0, this.score - ERROR_PENALTY);
     errorsEl.textContent = this.errors;
     scoreEl.textContent = this.score;
 
@@ -747,170 +717,15 @@ const Phase3 = {
   },
 };
 
-/* =================================================================
-   FASE 4 — MISSÃO PREVENÇÃO
-   Puzzle: seleção múltipla, sem ordem.
-
-   O jogador vê hábitos corretos misturados com hábitos de risco e
-   precisa encontrar TODOS os corretos, evitando clicar nos errados.
-   ================================================================= */
-
-const PREVENTION_ITEMS = [
-  { id: 'wash-hands',    label: 'Lavar as mãos antes de comer',                     icon: 'sprites/icon_wash_hands.png',    correct: true },
-  { id: 'wash-food',     label: 'Lavar bem frutas e verduras',                      icon: 'sprites/icon_wash_food.png',     correct: true },
-  { id: 'treated-water', label: 'Beber água tratada ou filtrada',                   icon: 'sprites/icon_treated_water.png', correct: true },
-  { id: 'sanitation',    label: 'Usar banheiro e saneamento adequados',             icon: 'sprites/icon_sanitation.png',    correct: true },
-  { id: 'street-food',   label: 'Comer alimento da rua sem lavar as mãos',          icon: 'sprites/icon_street_food.png',   correct: false },
-  { id: 'barefoot',      label: 'Andar descalço em solo possivelmente contaminado', icon: 'sprites/icon_barefoot.png',      correct: false },
-  { id: 'puddle-water',  label: 'Beber água de poça ou rio sem tratamento',         icon: 'sprites/icon_puddle_water.png',  correct: false },
-  { id: 'no-wash-after', label: 'Não lavar as mãos após usar o banheiro',           icon: 'sprites/icon_no_wash.png',       correct: false },
-];
-
-const Phase4 = {
-  score: 100,
-  errors: 0,
-  timeLeft: 60,
-  timerId: null,
-  timeUpShown: false,
-  solved: false,
-  foundCount: 0,
-  totalCorrect: PREVENTION_ITEMS.filter(i => i.correct).length,
-
-  correctLeadText: 'Você encontrou todos os hábitos que previnem a Ascaridíase',
-  correctExplanation: 'Lavar as mãos, lavar os alimentos, beber água tratada e ter acesso a saneamento básico interrompem o ciclo, impedindo que os ovos do parasita cheguem até a boca de uma nova pessoa.',
-  educationTitle: 'Prevenção é interromper o ciclo',
-  educationExplanation: 'Cada hábito de higiene quebra uma etapa do ciclo de transmissão. Por isso pequenas atitudes do dia a dia fazem tanta diferença na saúde de toda a comunidade.',
-
-  init() {
-    this.score = 100;
-    this.errors = 0;
-    this.timeLeft = 60;
-    this.timeUpShown = false;
-    this.solved = false;
-    this.foundCount = 0;
-
-    scoreEl.textContent = this.score;
-    errorsEl.textContent = this.errors;
-    timerEl.textContent = this.timeLeft + 's';
-
-    hud.classList.remove('hidden');
-    showScreen('phase4');
-
-    document.getElementById('found-count').textContent = this.foundCount;
-    document.getElementById('total-count').textContent = this.totalCorrect;
-
-    this.renderCards();
-    this.startTimer();
-  },
-
-  startTimer() {
-    clearInterval(this.timerId);
-    this.timerId = setInterval(() => {
-      if (this.solved) {
-        clearInterval(this.timerId);
-        return;
-      }
-      this.timeLeft--;
-      if (this.timeLeft <= 0) {
-        this.timeLeft = 0;
-        timerEl.textContent = '0s';
-        clearInterval(this.timerId);
-        if (!this.timeUpShown && !this.solved) {
-          this.timeUpShown = true;
-          openModal(modalTimeUp);
-        }
-        return;
-      }
-      timerEl.textContent = this.timeLeft + 's';
-    }, 1000);
-  },
-
-  renderCards() {
-    const container = document.getElementById('phase4-cards');
-    const shuffled = [...PREVENTION_ITEMS].sort(() => Math.random() - 0.5);
-
-    container.innerHTML = shuffled.map(item => `
-      <div class="cycle-card prevention-card" data-id="${item.id}">
-        <img class="card-icon" src="${item.icon}" alt="">
-        <div class="card-label">${item.label}</div>
-      </div>
-    `).join('');
-
-    container.querySelectorAll('.prevention-card').forEach(card => {
-      card.addEventListener('click', () => this.handleCardClick(card));
-    });
-  },
-
-  handleCardClick(cardEl) {
-    if (this.solved) return;
-    const id = cardEl.getAttribute('data-id');
-    const item = PREVENTION_ITEMS.find(i => i.id === id);
-
-    if (item.correct) {
-      this.registerFound(cardEl);
-    } else {
-      this.registerWrongClick(cardEl);
-    }
-  },
-
-  registerFound(cardEl) {
-    cardEl.classList.add('placed');
-    this.foundCount++;
-    document.getElementById('found-count').textContent = this.foundCount;
-
-    if (this.foundCount === this.totalCorrect) {
-      this.solved = true;
-      clearInterval(this.timerId);
-      setTimeout(() => showCorrectModal(this), 500);
-    }
-  },
-
-  registerWrongClick(cardEl) {
-    if (this.solved) return;
-    this.errors++;
-    this.score = Math.max(0, this.score - 10);
-    errorsEl.textContent = this.errors;
-    scoreEl.textContent = this.score;
-
-    if (this.errors >= MAX_ERRORS) {
-      handleMaxErrorsReached(this);
-      return;
-    }
-
-    cardEl.classList.remove('card-wrong');
-    void cardEl.offsetWidth;
-    cardEl.classList.add('card-wrong');
-
-    showToast('Esse hábito não ajuda a prevenir a Ascaridíase — pode até favorecer a contaminação. Procure os hábitos de higiene corretos.');
-  },
-};
-
-
 PhaseManager.registerPhase(1, Phase1);
 PhaseManager.registerPhase(2, Phase2);
 PhaseManager.registerPhase(3, Phase3);
-PhaseManager.registerPhase(4, Phase4);
 
 /* =================================================================
    EVENTOS DE NAVEGAÇÃO / MODAIS
    ================================================================= */
 document.getElementById('btn-start').addEventListener('click', () => {
   PhaseManager.start(1);
-});
-
-document.getElementById('btn-continue').addEventListener('click', () => {
-  closeModal(modalCorrect);
-  showEducationModal(PhaseManager.current);
-});
-
-document.getElementById('btn-to-phase-complete').addEventListener('click', () => {
-  closeModal(modalEducation);
-  showPhaseCompleteModal(PhaseManager.current);
-});
-
-document.getElementById('btn-next-phase').addEventListener('click', () => {
-  closeModal(modalPhaseComplete);
-  completePhaseAndAdvance(PhaseManager.current);
 });
 
 document.getElementById('btn-continue-after-errors').addEventListener('click', () => {
