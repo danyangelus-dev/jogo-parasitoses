@@ -228,13 +228,24 @@ function showGameCompleteModal() {
 }
 
 // Reinicia o jogo inteiro (chamado quando o tempo de uma fase esgota).
-function restartGame() {
+function restartGame(startImmediately = false) {
   closeModal(modalTimeUp);
   closeModal(modalGameComplete);
+
+  // garante que nenhum cronômetro de fase continue rodando
+  Object.values(PhaseManager.phases).forEach(p => clearInterval(p.timerId));
 
   GAME.currentPhase = 1;
   GAME.totalScore = 0;
   GAME.phasesCompleted = [];
+
+  window.scrollTo(0, 0);
+
+  if (startImmediately) {
+    // recomeça direto na Fase 1, sem passar pela tela inicial
+    PhaseManager.start(1);
+    return;
+  }
 
   hud.classList.add('hidden');
   showScreen('intro');
@@ -387,9 +398,68 @@ const Phase1 = {
     setTimeout(() => showCorrectModal(this), 400);
   },
 
+  // Sombras no chão (coordenadas do SVG 900x560). A luz vem do alto à esquerda,
+  // então as sombras ficam levemente deslocadas para a direita.
+  // Para ajustar: cx/cy = centro da sombra, rx/ry = tamanho, o = opacidade.
+  SHADOWS: [
+    { id: 'tree1',      cx: 80,  cy: 300, rx: 52, ry: 10, o: 0.45 },
+    { id: 'tree2',      cx: 828, cy: 303, rx: 52, ry: 10, o: 0.45 },
+    { id: 'tree3',      cx: 556, cy: 239, rx: 44, ry: 8,  o: 0.40 },
+    { id: 'playground', cx: 245, cy: 315, rx: 76, ry: 11, o: 0.40 },
+    { id: 'bench',      cx: 481, cy: 344, rx: 62, ry: 8,  o: 0.40 },
+    { id: 'trashcan',   cx: 616, cy: 320, rx: 28, ry: 6,  o: 0.40 },
+    { id: 'fruits',     cx: 700, cy: 281, rx: 28, ry: 5,  o: 0.35 },
+    { id: 'fountain',   cx: 790, cy: 512, rx: 92, ry: 15, o: 0.50 },
+    { id: 'person',     cx: 660, cy: 489, rx: 26, ry: 6,  o: 0.45 },
+    { id: 'dog',        cx: 484, cy: 467, rx: 33, ry: 6,  o: 0.40 },
+    { id: 'ball',       cx: 576, cy: 505, rx: 19, ry: 5,  o: 0.40 },
+    { id: 'feces',      cx: 400, cy: 514, rx: 26, ry: 5,  o: 0.40 },
+    // caixa de areia: sombra larga colada na base para ela "pousar" no chão
+    { id: 'sandbox',    cx: 178, cy: 446, rx: 168, ry: 13, o: 0.55 },
+    { id: 'sandbox2',   cx: 196, cy: 451, rx: 140, ry: 8,  o: 0.35 },
+    // poça: leve escurecimento da grama úmida ao redor
+    { id: 'puddle',     cx: 195, cy: 503, rx: 118, ry: 36, o: 0.22 },
+  ],
+
+
+  buildShadowsMarkup() {
+    return this.SHADOWS.map(sh =>
+      `<ellipse cx="${sh.cx}" cy="${sh.cy}" rx="${sh.rx}" ry="${sh.ry}" fill="#06140a" opacity="${sh.o}" filter="url(#soft-blur)"/>`
+    ).join('\n      ');
+  },
+
   renderScene() {
     const svg = document.getElementById('park-scene');
     svg.innerHTML = `
+      <defs>
+        <!-- desfoque suave usado nas sombras do chão -->
+        <filter id="soft-blur" x="-30%" y="-80%" width="160%" height="260%">
+          <feGaussianBlur stdDeviation="3.5"/>
+        </filter>
+        <!-- sombra projetada pela silhueta (caixa de areia) -->
+        <filter id="shadow-sandbox" x="-10%" y="-10%" width="130%" height="140%">
+          <feDropShadow dx="6" dy="8" stdDeviation="3.5" flood-color="#06140a" flood-opacity="0.5"/>
+        </filter>
+        <!-- borda escurecida do caminho de terra, para assentar na grama -->
+        <filter id="shadow-path" x="-10%" y="-10%" width="125%" height="125%">
+          <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#0d2a0a" flood-opacity="0.6"/>
+        </filter>
+        <!-- sombra leve da poça -->
+        <filter id="shadow-puddle" x="-15%" y="-25%" width="130%" height="150%">
+          <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#06140a" flood-opacity="0.45"/>
+        </filter>
+        <!-- vinheta para dar profundidade -->
+        <radialGradient id="vignette" cx="50%" cy="55%" r="75%">
+          <stop offset="60%" stop-color="#000" stop-opacity="0"/>
+          <stop offset="100%" stop-color="#021008" stop-opacity="0.35"/>
+        </radialGradient>
+        <!-- luz do sol vindo do canto superior esquerdo -->
+        <radialGradient id="sunlight" cx="12%" cy="0%" r="70%">
+          <stop offset="0%" stop-color="#fff6c8" stop-opacity="0.28"/>
+          <stop offset="100%" stop-color="#fff6c8" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+
       <!-- FUNDO: céu visível até y=200 -->
       <image href="sprites/sky.png" x="0" y="0" width="900" height="210" preserveAspectRatio="none"/>
 
@@ -397,16 +467,21 @@ const Phase1 = {
       <image href="sprites/grass.png" x="0" y="200" width="900" height="360" preserveAspectRatio="none"/>
 
       <g data-id="path2">
-        <image href="sprites/path2.png" x="280" y="164" width="650" height="400" preserveAspectRatio="xMidYMid meet"/>
+        <image href="sprites/path2.png" x="280" y="164" width="650" height="400" preserveAspectRatio="xMidYMid meet" filter="url(#shadow-path)"/>
+      </g>
+
+      <!-- CAMADA DE SOMBRAS NO CHÃO (não clicável) -->
+      <g id="ground-shadows" pointer-events="none">
+      ${this.buildShadowsMarkup()}
       </g>
 
       <!-- CAIXA DE AREIA: menor, centralizada e na frente da grama -->
       <g data-id="path" class="clickable">
-        <image href="sprites/path.png" x="8" y="323" width="325" height="143" preserveAspectRatio="xMidYMid meet"/>
+        <image href="sprites/path.png" x="8" y="323" width="325" height="143" preserveAspectRatio="xMidYMid meet" filter="url(#shadow-sandbox)"/>
       </g>
 
       <g data-id="puddle" class="clickable">
-        <image href="sprites/puddle.png" xlink:href="sprites/puddle.png" x="90" y="422" width="210" height="150" preserveAspectRatio="xMidYMid meet"/>
+        <image href="sprites/puddle.png" xlink:href="sprites/puddle.png" x="90" y="422" width="210" height="150" preserveAspectRatio="xMidYMid meet" filter="url(#shadow-puddle)"/>
       </g>
 
       <g data-id="tree1" class="clickable tree-sway">
@@ -414,7 +489,7 @@ const Phase1 = {
       </g>
 
       <g data-id="tree2" class="clickable tree-sway">
-        <image href="sprites/tree2.png" xlink:href="sprites/tree2.png" x="757" y="135" width="136" height="170" preserveAspectRatio="xMidYMid meet"/>
+        <image href="sprites/tree2.png" xlink:href="sprites/tree2.png" x="757" y="140" width="136" height="170" preserveAspectRatio="xMidYMid meet"/>
       </g>
 
       <g data-id="tree3" class="clickable tree-sway">
@@ -456,6 +531,10 @@ const Phase1 = {
       <g data-id="feces" class="clickable">
         <image href="sprites/feces.png" xlink:href="sprites/feces.png" x="364" y="458" width="67" height="63" preserveAspectRatio="xMidYMid meet"/>
       </g>
+
+      <!-- LUZ E VINHETA (efeitos por cima da cena, não clicáveis) -->
+      <rect x="0" y="0" width="900" height="560" fill="url(#sunlight)" pointer-events="none"/>
+      <rect x="0" y="0" width="900" height="560" fill="url(#vignette)" pointer-events="none"/>
 
 
     `;
@@ -602,7 +681,7 @@ const Phase2 = {
 
   placeCard(cardEl, item) {
     const slot = document.getElementById(`p2-slot-${item.order}`);
-    slot.innerHTML = `${CYCLE_ICONS[item.id]}<div class="slot-label">${item.label}</div>`;
+    slot.innerHTML = CYCLE_ICONS[item.id]; // só a imagem, sem o nome
     slot.classList.add('filled', 'just-filled');
     setTimeout(() => slot.classList.remove('just-filled'), 500);
 
@@ -861,30 +940,38 @@ PhaseManager.registerPhase(3, Phase3);
 /* =================================================================
    EVENTOS DE NAVEGAÇÃO / MODAIS
    ================================================================= */
-document.getElementById('btn-start').addEventListener('click', () => {
+// Liga um botão a uma ação. Se o botão não existir no HTML (por exemplo,
+// arquivos de versões diferentes misturados), ignora em vez de quebrar
+// e deixar os botões seguintes sem funcionar.
+function onClick(id, handler) {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('click', handler);
+}
+
+onClick('btn-start', () => {
   PhaseManager.start(1);
 });
 
-document.getElementById('btn-next-phase').addEventListener('click', () => {
+onClick('btn-next-phase', () => {
   closeModal(modalPhaseComplete);
   // confete ao clicar em "VER RESULTADO FINAL" (última fase)
   if (GAME.currentPhase >= LAST_PHASE) launchConfetti();
   completePhaseAndAdvance(PhaseManager.current);
 });
 
-document.getElementById('btn-continue-after-errors').addEventListener('click', () => {
+onClick('btn-continue-after-errors', () => {
   closeModal(modalMaxErrors);
   completePhaseAndAdvance(PhaseManager.current);
 });
 
-document.getElementById('btn-restart-game').addEventListener('click', () => {
-  restartGame();
+onClick('btn-restart-game', () => {
+  restartGame(true);
 });
 
-document.getElementById('btn-close-soon').addEventListener('click', () => {
+onClick('btn-close-soon', () => {
   closeModal(modalSoon);
 });
 
-document.getElementById('btn-restart-timeup').addEventListener('click', () => {
-  restartGame();
+onClick('btn-restart-timeup', () => {
+  restartGame(true);
 });
