@@ -414,7 +414,7 @@ const Phase1 = {
       </g>
 
       <g data-id="tree2" class="clickable tree-sway">
-        <image href="sprites/tree2.png" xlink:href="sprites/tree2.png" x="757" y="140" width="136" height="170" preserveAspectRatio="xMidYMid meet"/>
+        <image href="sprites/tree2.png" xlink:href="sprites/tree2.png" x="757" y="135" width="136" height="170" preserveAspectRatio="xMidYMid meet"/>
       </g>
 
       <g data-id="tree3" class="clickable tree-sway">
