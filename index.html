@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Missão: Interrompa o Ciclo — Ascaridíase</title>
+<meta name="theme-color" content="#041722">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#041722">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -31,12 +39,29 @@
 <!-- ===================== TELA: INTRODUÇÃO ===================== -->
 <section id="screen-intro" class="screen active">
   <div class="intro-card">
+    <!-- mini cenário do parque -->
+    <div class="intro-art" aria-hidden="true">
+      <img class="art-tree-l" src="sprites/tree1.png" alt="">
+      <img class="art-play" src="sprites/playground.png" alt="">
+      <img class="art-ball" src="sprites/ball.png" alt="">
+      <img class="art-dog" src="sprites/dog.png" alt="">
+      <img class="art-tree-r" src="sprites/tree2.png" alt="">
+      <img class="art-fountain" src="sprites/fountain.png" alt="">
+    </div>
+
     <div class="intro-icon"><img src="sprites/icon_microscope.png" alt=""></div>
-    <h1>MISSÃO<br> INTERROMPA O CICLO</h1>
+    <h1><span class="h1-eyebrow">MISSÃO</span><br>INTERROMPA O CICLO</h1>
     <p class="intro-text">
       Uma área do parque pode estar contaminada. Sua missão é investigar o
       ambiente e descobrir onde o ciclo da Ascaridíase pode começar.
     </p>
+
+    <div class="intro-steps">
+      <span class="intro-step"><img src="sprites/icon_magnifier.png" alt="">Investigue</span>
+      <span class="intro-step"><img src="sprites/icon_puzzle.png" alt="">Monte o ciclo</span>
+      <span class="intro-step"><img src="sprites/icon_dna.png" alt="">Siga o parasita</span>
+    </div>
+
     <button id="btn-start" class="btn btn-primary">COMEÇAR INVESTIGAÇÃO</button>
   </div>
 </section>
@@ -75,7 +100,7 @@
 <!-- ===================== TELA: FASE 3 - CAMINHO NO CORPO (QUIZ) ===================== -->
 <section id="screen-phase3" class="screen">
   <div class="mission-banner">
-    <p><img class="mission-icon" src="sprites/icon_dna.png" alt="">Depois de ingerido, o ovo eclode e a larva percorre um caminho dentro do corpo. Responda cada etapa corretamente.</p>
+    <p><img class="mission-icon" src="sprites/icon_dna.png" alt="">Depois de ingerido, o ovo eclode e a larva percorre um caminho dentro do corpo. Responda corretamente.</p>
   </div>
 
   <div id="sequence-track3" class="sequence-track">

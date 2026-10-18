@@ -76,10 +76,34 @@ const gameResultTextEl = document.getElementById('game-result-text');
 /* ============================== */
 /*  UTILITÁRIOS DE TELA           */
 /* ============================== */
+// Faz o número "pular" quando muda (efeito visual do HUD).
+function bump(el) {
+  el.classList.remove('bump');
+  void el.offsetWidth; // reinicia a animação
+  el.classList.add('bump');
+}
+
+// Mostra o tempo no HUD; nos últimos 10s o marcador fica vermelho e pulsa.
+function setTimerDisplay(seconds) {
+  timerEl.textContent = seconds + 's';
+  timerEl.parentElement.classList.toggle('hud-danger', seconds <= 10);
+}
+
+// Mostra os erros no HUD (com o efeito de "pulo" quando aumenta).
+function setErrorsDisplay(count) {
+  const changed = errorsEl.textContent !== String(count);
+  errorsEl.textContent = count;
+  if (changed && count > 0) bump(errorsEl);
+}
+
 // Mostra no HUD a pontuação TOTAL (fases já concluídas + fase atual).
 // A pontuação individual da fase aparece só no menu "FASE X CONCLUÍDA!".
 function updateScoreHud(phase) {
-  scoreEl.textContent = GAME.totalScore + phase.score;
+  const value = GAME.totalScore + phase.score;
+  if (scoreEl.textContent !== String(value)) {
+    scoreEl.textContent = value;
+    bump(scoreEl);
+  }
 }
 
 // Pontos máximos que cada fase pode render.
@@ -334,8 +358,8 @@ const Phase1 = {
     this.solved = false;
 
     updateScoreHud(this);
-    errorsEl.textContent = this.errors;
-    timerEl.textContent = this.timeLeft + 's';
+    setErrorsDisplay(this.errors);
+    setTimerDisplay(this.timeLeft);
 
     hud.classList.remove('hidden');
     showScreen('phase1');
@@ -354,7 +378,7 @@ const Phase1 = {
       this.timeLeft--;
       if (this.timeLeft <= 0) {
         this.timeLeft = 0;
-        timerEl.textContent = '0s';
+        setTimerDisplay(0);
         clearInterval(this.timerId);
         if (!this.timeUpShown && !this.solved) {
           this.timeUpShown = true;
@@ -362,7 +386,7 @@ const Phase1 = {
         }
         return;
       }
-      timerEl.textContent = this.timeLeft + 's';
+      setTimerDisplay(this.timeLeft);
     }, 1000);
   },
 
@@ -371,7 +395,7 @@ const Phase1 = {
     this.errors++;
     this.penalty += ERROR_PENALTY;
     recalcScore(this);
-    errorsEl.textContent = this.errors;
+    setErrorsDisplay(this.errors);
     updateScoreHud(this);
 
     if (this.errors >= MAX_ERRORS) {
@@ -603,8 +627,8 @@ const Phase2 = {
     this.nextExpected = 0;
 
     updateScoreHud(this);
-    errorsEl.textContent = this.errors;
-    timerEl.textContent = this.timeLeft + 's';
+    setErrorsDisplay(this.errors);
+    setTimerDisplay(this.timeLeft);
 
     hud.classList.remove('hidden');
     showScreen('phase2');
@@ -624,7 +648,7 @@ const Phase2 = {
       this.timeLeft--;
       if (this.timeLeft <= 0) {
         this.timeLeft = 0;
-        timerEl.textContent = '0s';
+        setTimerDisplay(0);
         clearInterval(this.timerId);
         if (!this.timeUpShown && !this.solved) {
           this.timeUpShown = true;
@@ -632,7 +656,7 @@ const Phase2 = {
         }
         return;
       }
-      timerEl.textContent = this.timeLeft + 's';
+      setTimerDisplay(this.timeLeft);
     }, 1000);
   },
 
@@ -703,7 +727,7 @@ const Phase2 = {
     this.errors++;
     this.penalty += ERROR_PENALTY;
     recalcScore(this);
-    errorsEl.textContent = this.errors;
+    setErrorsDisplay(this.errors);
     updateScoreHud(this);
 
     if (this.errors >= MAX_ERRORS) {
@@ -810,8 +834,8 @@ const Phase3 = {
     this.currentQuestion = 0;
 
     updateScoreHud(this);
-    errorsEl.textContent = this.errors;
-    timerEl.textContent = this.timeLeft + 's';
+    setErrorsDisplay(this.errors);
+    setTimerDisplay(this.timeLeft);
 
     hud.classList.remove('hidden');
     showScreen('phase3');
@@ -831,7 +855,7 @@ const Phase3 = {
       this.timeLeft--;
       if (this.timeLeft <= 0) {
         this.timeLeft = 0;
-        timerEl.textContent = '0s';
+        setTimerDisplay(0);
         clearInterval(this.timerId);
         if (!this.timeUpShown && !this.solved) {
           this.timeUpShown = true;
@@ -839,7 +863,7 @@ const Phase3 = {
         }
         return;
       }
-      timerEl.textContent = this.timeLeft + 's';
+      setTimerDisplay(this.timeLeft);
     }, 1000);
   },
 
@@ -917,7 +941,7 @@ const Phase3 = {
     this.errors++;
     this.penalty += ERROR_PENALTY;
     recalcScore(this);
-    errorsEl.textContent = this.errors;
+    setErrorsDisplay(this.errors);
     updateScoreHud(this);
 
     if (this.errors >= MAX_ERRORS) {
