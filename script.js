@@ -763,7 +763,7 @@ const BODY_QUIZ = [
   {
     id: 'lungs',
     label: 'Pulmões',
-    prompt: 'Levada pelo sangue, a larva chega a um órgão do sistema respiratório. Qual é esse órgão?',
+    prompt: 'Levada pelo sangue, a larva chega a um órgão. Qual é esse órgão?',
     options: ['lungs', 'liver', 'kidney'],
   },
   {
